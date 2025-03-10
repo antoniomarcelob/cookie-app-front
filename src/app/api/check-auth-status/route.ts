@@ -1,46 +1,20 @@
-// 'use server'
-
-// import { NextRequest, NextResponse } from "next/server";
-// import { getCookie, getCookies, setCookie, deleteCookie, hasCookie } from 'cookies-next/server';
-
-// export async function GET(request: NextRequest) {
-//     const accessToken = await getCookie('accessToken')
-//     const refreshToken = request.cookies.get('accessToken')
-
-//     console.log("accessToken: ", accessToken)
-    
-//     if(accessToken) {
-//         return NextResponse.json({ success: 'Autenticado. (front).' }, { status: 200 });
-//     }
-
-//     return NextResponse.json({ error: 'Não autenticado. (front).' }, { status: 401 });
-    
-// }
-
-import { getCookie, getCookies } from 'cookies-next/server';
+import { getCookie } from 'cookies-next/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies as cook } from 'next/headers';
-
+import { jwtDecode } from "jwt-decode";
 
 export async function GET(request: NextRequest, response: NextResponse) {
-    const cookies = request.cookies;
-    const accessToken = cookies.get('accessToken');
+    const accessToken = await getCookie('accessToken', { req: request, res: response });
 
-    const value = await getCookies({ req: request, res: response });
-
-    // await getCookie('test');
-    // const value = await getCookie('accessToken', { cookies: cook });
-
-
-    console.log("value: ", value)
-    
     if (accessToken) {
         // Aqui você pode verificar o token (por exemplo, usando JWT ou outro método)
         try {
             // Decodifique e valide o accessToken, se for válido
-            return NextResponse.json({ message: 'Authenticated' }, { status: 200 });
-        } catch (error) {
-            return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+            const decodedAccessToken: {username: string, sub: string} = jwtDecode(accessToken, { header: false });
+            console.log("decodedAccessToken: ", {username: decodedAccessToken.username, userId: decodedAccessToken.sub})
+
+            return NextResponse.json({ username: decodedAccessToken.username, userId: decodedAccessToken.sub }, { status: 200 });
+        } catch (err) {
+            return NextResponse.json({ error: 'Invalid token', err }, { status: 401 });
         }
     }
 
