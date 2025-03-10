@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
     const body = await request.json()
@@ -11,14 +10,30 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'Application/json'
         }
     })
+    
+    const data = await response.json();
 
-    const cookiesReceived = (await cookies()).getAll()
+    const cookiesReceived = response.headers.getSetCookie();
 
-    console.log("cookiesReceived: ", cookiesReceived)
+    const separatedCookies = separateCookies(cookiesReceived)
 
     if(response.status === 200) {
         console.log("status: 200")
-        return NextResponse.json({status: 200})
+        
+        const res = NextResponse.json({ message: data.message });
+
+        if (separatedCookies.length > 0) {
+            separatedCookies.forEach(cookie => {
+                if (cookie.accessToken) {
+                    res.cookies.set('accessToken', cookie.accessToken, { path: "/", secure: false, httpOnly: true, sameSite: "lax" });
+                }
+                if (cookie.refreshToken) {
+                    res.cookies.set('refreshToken', cookie.refreshToken, { path: "/", secure: false, httpOnly: true, sameSite: "lax" });
+                }
+            });
+        }
+
+        return res
     }
     if(response.status === 400) {
         console.log("status: 400")
@@ -28,3 +43,28 @@ export async function POST(request: NextRequest) {
     console.log("status: 500")
     return NextResponse.json({error: 'Failed to login.(front-api-route)'}, {status: 500})
 }
+
+
+function separateCookies(cookies: string[]) {
+    const result: { accessToken?: string; refreshToken?: string }[] = [];
+  
+    let accessToken: string | undefined;
+    let refreshToken: string | undefined;
+  
+    cookies.forEach(cookie => {
+      if (cookie.startsWith('accessToken=')) {
+        accessToken = cookie.split('=')[1].split(';')[0];
+      } else if (cookie.startsWith('refreshToken=')) {
+        refreshToken = cookie.split('=')[1].split(';')[0];
+      }
+    });
+  
+    if (accessToken) {
+      result.push({ accessToken });
+    }
+    if (refreshToken) {
+      result.push({ refreshToken });
+    }
+  
+    return result;
+  }

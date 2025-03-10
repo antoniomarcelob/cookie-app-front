@@ -9,12 +9,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'No access token provided.' }, { status: 401 });
   }
 
-  const response = await fetch('http://localhost:3333/api/profile/me', {
+  const response = await fetch('http://localhost:4444/api/profile/me', {
     method: 'GET',
-    headers: {
-      'Authorization': authToken,
-      'Content-Type': 'application/json'
-    }
+    credentials: "include",
   });
  
   if (response.status === 200) {
